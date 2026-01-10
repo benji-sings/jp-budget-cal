@@ -662,6 +662,8 @@ The following enhancements would improve production readiness and business capab
 
 ### 10. Make Use of the Analytics to Build a Recommender Engine to Enhance the Web Application  
 
+### 11. Explore the use of Apache Airflow v3 for Data Engineering 
+
 ### Implementation Priority Table
 
 No.  | Improvement | Priority | Effort | Impact |
@@ -676,3 +678,4 @@ No.  | Improvement | Priority | Effort | Impact |
 | 8. | Actual Pen-test and Verification of Security Measures | Medium | High 
 | 9. | Hardening of the Underlying System OS | Medium | Medium-High | Need to do additional functionality test for the web application after hardening the System OS
 | 10. | Make Use of the Analytics to Build a Recommender Engine to Enhance the Web Application | Low | High | Long-term for growth
+| 11. | Explore the use of Apache Airflow v3 for Data Engineering | Low | Low
