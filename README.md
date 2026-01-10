@@ -685,3 +685,6 @@ No.  | Improvement | Priority | Effort | Impact |
 | 11. | Explore the use of Apache Airflow v3 for Data Engineering | Low | Low
 | 12. | Integration of More Data Sources to the Web Application | High | Medium | Valuable for growth
 | 13. | Explore the use of Prometheus and Grafana for Observability | Low | Low 
+
+## Disclaimer
+The author initially created this project for the exploration of open-source tools and to learn more of the concepts of Software Development. The author has a physics and mathematics background based on his educational training. He is not a computer scientist. 
