@@ -681,4 +681,4 @@ No.  | Improvement | Priority | Effort | Impact |
 | 9. | Hardening of the Underlying System OS | Medium | Medium-High | Need to do additional functionality test for the web application after hardening the System OS
 | 10. | Make Use of the Analytics to Build a Recommender Engine to Enhance the Web Application | Low | High | Long-term for growth
 | 11. | Explore the use of Apache Airflow v3 for Data Engineering | Low | Low
-| 12. | Integration of MOre Data Sources to the Web Application | High | Medium | Valuable for growth
+| 12. | Integration of More Data Sources to the Web Application | High | Medium | Valuable for growth
