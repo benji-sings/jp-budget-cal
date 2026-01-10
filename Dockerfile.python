@@ -1,0 +1,77 @@
+# Python FastAPI Backend
+# Multi-stage build for optimized production image
+# CIS Docker Benchmark v1.7.0 Level 2 Compliant
+
+# Stage 1: Build
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY docker-requirements.txt ./requirements.txt
+
+# Create virtual environment and install dependencies
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Production
+FROM python:3.11-slim AS production
+
+# CIS 4.1 - Add image metadata labels
+LABEL maintainer="Japan Travel Budget Calculator Team" \
+      version="1.0" \
+      description="Japan Travel Budget Calculator - FastAPI Backend" \
+      org.opencontainers.image.source="https://github.com/example/japan-travel-calculator" \
+      org.opencontainers.image.vendor="Japan Travel Team" \
+      org.opencontainers.image.licenses="MIT" \
+      security.level="CIS-L2"
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY python_app ./python_app
+COPY alembic.ini ./
+COPY alembic ./alembic
+
+# CIS 4.1 - Create non-root user for security
+RUN groupadd -g 1001 python && \
+    useradd -u 1001 -g python -s /sbin/nologin python && \
+    # Create necessary directories with proper permissions
+    mkdir -p /app/tmp && \
+    chown -R python:python /app
+
+# CIS 5.25 - Set restrictive file permissions
+RUN chmod -R 550 /app/python_app && \
+    chmod -R 770 /app/tmp
+
+# CIS 4.1 - Run as non-root user
+USER python
+
+# Expose port (non-privileged port as per CIS 5.7)
+EXPOSE 5001
+
+# CIS 5.26 - Health check for container monitoring
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5001/api/health || exit 1
+
+# CIS 4.7 - Use exec form for CMD to ensure proper signal handling
+CMD ["uvicorn", "python_app.main:app", "--host", "0.0.0.0", "--port", "5001"]

@@ -1,0 +1,114 @@
+# Nginx WAF Dockerfile with ModSecurity and OWASP Core Rule Set
+# CIS Docker Benchmark v1.7.0 Level 2 Compliant
+FROM nginx:1.25-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    gcc \
+    g++ \
+    make \
+    automake \
+    autoconf \
+    libtool \
+    pcre-dev \
+    zlib-dev \
+    openssl-dev \
+    libxml2-dev \
+    yajl-dev \
+    curl-dev \
+    geoip-dev \
+    lmdb-dev \
+    linux-headers \
+    git
+
+# Build ModSecurity v3
+WORKDIR /opt
+RUN git clone --depth 1 -b v3/master https://github.com/SpiderLabs/ModSecurity.git && \
+    cd ModSecurity && \
+    git submodule init && \
+    git submodule update && \
+    ./build.sh && \
+    ./configure --with-yajl --with-lmdb && \
+    make -j$(nproc) && \
+    make install
+
+# Build ModSecurity-nginx connector
+RUN git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git
+
+# Get nginx source matching installed version
+RUN NGINX_VERSION=$(nginx -v 2>&1 | sed 's/.*nginx\///' | cut -d' ' -f1) && \
+    wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar -xzf nginx-${NGINX_VERSION}.tar.gz && \
+    cd nginx-${NGINX_VERSION} && \
+    ./configure --with-compat --add-dynamic-module=../ModSecurity-nginx && \
+    make modules
+
+# Download OWASP Core Rule Set
+RUN git clone --depth 1 -b v4.0/main https://github.com/coreruleset/coreruleset.git /opt/owasp-crs
+
+# Final stage - minimal runtime image
+FROM nginx:1.25-alpine
+
+# OCI Labels
+LABEL org.opencontainers.image.title="Japan Travel App - Nginx WAF"
+LABEL org.opencontainers.image.description="Nginx with ModSecurity WAF and OWASP CRS"
+LABEL org.opencontainers.image.vendor="Japan Travel App"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL security.privileged="false"
+LABEL security.capabilities.drop="all"
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    pcre \
+    libxml2 \
+    yajl \
+    libcurl \
+    geoip \
+    lmdb \
+    libstdc++ \
+    && rm -rf /var/cache/apk/*
+
+# Copy ModSecurity library
+COPY --from=builder /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/lib/
+RUN ln -s /usr/local/lib/libmodsecurity.so.3 /usr/local/lib/libmodsecurity.so
+
+# Copy ModSecurity nginx module
+COPY --from=builder /opt/nginx-*/objs/ngx_http_modsecurity_module.so /etc/nginx/modules/
+
+# Copy OWASP CRS rules
+COPY --from=builder /opt/owasp-crs/rules /etc/nginx/modsecurity/rules/
+COPY --from=builder /opt/owasp-crs/crs-setup.conf.example /etc/nginx/modsecurity/crs-setup.conf
+
+# Copy ModSecurity configuration
+COPY --from=builder /opt/ModSecurity/modsecurity.conf-recommended /etc/nginx/modsecurity/modsecurity.conf
+COPY --from=builder /opt/ModSecurity/unicode.mapping /etc/nginx/modsecurity/
+
+# Create directories for WAF operation
+RUN mkdir -p /var/log/modsecurity /var/cache/modsecurity /etc/nginx/modsecurity/custom
+
+# Copy custom ModSecurity configuration
+COPY nginx/modsecurity/main.conf /etc/nginx/modsecurity/main.conf
+COPY nginx/modsecurity/custom-rules.conf /etc/nginx/modsecurity/custom/custom-rules.conf
+
+# Update library path
+RUN echo "/usr/local/lib" > /etc/ld-musl-x86_64.path
+
+# Create non-root user
+RUN addgroup -g 101 -S nginx || true && \
+    adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx || true
+
+# Set ownership
+RUN chown -R nginx:nginx /var/cache/nginx /var/log/nginx /var/log/modsecurity /var/cache/modsecurity && \
+    chmod -R 755 /etc/nginx/modsecurity
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+
+# Run as nginx user for high ports, root required for port 80
+USER root
+
+CMD ["nginx", "-g", "daemon off;"]

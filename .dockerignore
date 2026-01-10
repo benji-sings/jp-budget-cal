@@ -1,0 +1,102 @@
+# CIS Docker Benchmark - Secure Build Context
+# Exclude unnecessary files to minimize attack surface
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Build outputs (will be rebuilt in container)
+dist/
+build/
+*.egg-info/
+
+# Version Control
+.git/
+.gitignore
+.gitattributes
+
+# Development and Environment files
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+coverage/
+.nyc_output/
+tests/
+python_app/tests/
+htmlcov/
+.coverage
+
+# Attached assets - keep city images but exclude generated content
+attached_assets/generated_images/
+attached_assets/generated_videos/
+attached_assets/stock_images/
+
+# Documentation
+*.md
+!docker-requirements.txt
+docs/
+LICENSE
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Replit specific
+.replit
+replit.nix
+.config/
+.cache/
+.upm/
+
+# Secrets and credentials (NEVER include these - CIS 4.3)
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials/
+*.secret
+
+# Database files
+*.db
+*.sqlite
+*.sql
+
+# Docker files (prevent recursive builds)
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Kubernetes/Infrastructure files
+nginx/
+*.yaml
+!alembic.ini
+
+# Misc
+*.tgz
+*.tar.gz

@@ -1,0 +1,301 @@
+# Docker Compose Configuration for Horizontal Scaling
+# CIS Docker Benchmark v1.7.0 Level 2 Compliant
+version: '3.8'
+
+services:
+  # Nginx Load Balancer (Basic - without WAF)
+  nginx:
+    image: nginx:alpine
+    container_name: japan-travel-nginx
+    restart: unless-stopped
+    profiles:
+      - basic
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - japan-travel-network
+    # CIS Level 2 Security Controls
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:mode=1777,size=100M
+      - /var/run:mode=1777,size=10M
+      - /tmp:mode=1777,size=50M
+    mem_limit: 128m
+    mem_reservation: 32m
+    cpus: 0.5
+    ulimits:
+      nproc: 50
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service"
+
+  # Nginx WAF - ModSecurity with OWASP Core Rule Set
+  # Protects against OWASP Top 10 and 100+ common web attacks
+  nginx-waf:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx-waf
+    container_name: japan-travel-nginx-waf
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx-waf.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - japan-travel-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # CIS Level 2 Security Controls
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:mode=1777,size=100M
+      - /var/run:mode=1777,size=10M
+      - /var/log/nginx:mode=1777,size=50M
+      - /var/log/modsecurity:mode=1777,size=100M
+      - /var/cache/modsecurity:mode=1777,size=50M
+      - /tmp:mode=1777,size=50M
+    mem_limit: 256m
+    mem_reservation: 64m
+    cpus: 1.0
+    ulimits:
+      nproc: 100
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+        labels: "service"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: japan-travel-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - japan-travel-network
+    # CIS Level 2 Security Controls
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    mem_limit: 300m
+    mem_reservation: 64m
+    cpus: 0.5
+    ulimits:
+      nproc: 50
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service"
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: japan-travel-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-japan_travel}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - japan-travel-network
+    # CIS Level 2 Security Controls
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+      - FOWNER
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: 1.0
+    ulimits:
+      nproc: 100
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service"
+
+  # Node.js Express Frontend & Gateway (Scalable)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-japan_travel}
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      USE_PYTHON_BACKEND: ${USE_PYTHON_BACKEND:-false}
+      PYTHON_BACKEND_URL: http://python-api:5001
+      TRUST_PROXY: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - japan-travel-network
+    # CIS Level 2 Security Controls
+    security_opt:
+      - no-new-privileges:true
+    # CIS 5.3 - Drop all capabilities (port 5000 > 1024, no NET_BIND_SERVICE needed)
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /app/tmp:mode=1777,size=100M
+      - /tmp:mode=1777,size=50M
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: 1.0
+    ulimits:
+      nproc: 100
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "service"
+
+  # Python FastAPI Backend (Scalable, Optional)
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-japan_travel}
+      REDIS_URL: redis://redis:6379
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - python
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - japan-travel-network
+    # CIS Level 2 Security Controls
+    security_opt:
+      - no-new-privileges:true
+    # CIS 5.3 - Drop all capabilities (port 5001 > 1024, no NET_BIND_SERVICE needed)
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /app/tmp:mode=1777,size=100M
+      - /tmp:mode=1777,size=50M
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: 1.0
+    ulimits:
+      nproc: 100
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "service"
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  # CIS 5.29 - User-defined bridge network with inter-container communication disabled
+  japan-travel-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"

@@ -1,0 +1,34 @@
+import express, { type Express } from "express";
+import fs from "fs";
+import path from "path";
+
+export function serveStatic(app: Express) {
+  const distPath = path.resolve(__dirname, "public");
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    );
+  }
+
+  app.use(express.static(distPath, {
+    maxAge: '1y',
+    etag: true,
+    lastModified: true,
+    immutable: true,
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (filePath.match(/\.(js|css|woff2?|ttf|eot)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (filePath.match(/\.(png|jpg|jpeg|gif|svg|webp|ico)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+      }
+    }
+  }));
+
+  app.use("*", (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
+}
