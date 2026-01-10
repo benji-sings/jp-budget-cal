@@ -687,4 +687,4 @@ No.  | Improvement | Priority | Effort | Impact |
 | 13. | Explore the use of Prometheus and Grafana for Observability | Low | Low 
 
 ## Disclaimer
-The author initially created this project for the exploration of open-source tools and to learn more about the concepts of Software Development. The author has a physics and mathematics background based on his education training. He is not a computer scientist. But is an advocate for the Linux Foundation (LF) and the Cloud Native Computing Foundation (CNCF). 
+The author initially created this project for the exploration of open-source tools and to learn more about the concepts of Software Development. The author has a physics and mathematics background based on his educational training. He is not a computer scientist. But is an advocate for the Linux Foundation (LF) and the Cloud Native Computing Foundation (CNCF). 
