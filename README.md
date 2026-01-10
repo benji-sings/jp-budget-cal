@@ -660,7 +660,7 @@ The following enhancements would improve production readiness and business capab
 
 ### 9. Hardening of the Underlying System OS  
 
-### 10. Make Use of the Analytics to Build a Recommender Engine to Enhance the Web Application  
+### 10. Make Use of the Analytics to Build a Recommender Engine to Enhance the Web Application (via Reverse ETL)  
 
 ### 11. Explore the use of Apache Airflow v3 for Data Engineering 
 
@@ -679,6 +679,6 @@ No.  | Improvement | Priority | Effort | Impact |
 | 7. | Improve more on the UI/UX | Medium | High | Need to be more intuitive for the user journey and more customers-centric to deliver value
 | 8. | Actual Pen-test and Verification of Security Measures | Medium | High 
 | 9. | Hardening of the Underlying System OS | Medium | Medium-High | Need to do additional functionality test for the web application after hardening the System OS
-| 10. | Make Use of the Analytics to Build a Recommender Engine to Enhance the Web Application | Low | High | Long-term for growth
+| 10. | Make Use of the Analytics to Build a Recommender Engine to Enhance the Web Application (via Reverse ETL) | Low | High | Long-term for growth
 | 11. | Explore the use of Apache Airflow v3 for Data Engineering | Low | Low
 | 12. | Integration of More Data Sources to the Web Application | High | Medium | Valuable for growth
