@@ -63,7 +63,7 @@ Hero Banner will change accordingly to the first Destination City selected by th
 ![Exported HTML](https://github.com/benji-sings/jp-budget-cal/blob/main/pictures/007_exported-html.png)
 
 ### Newsletter Subscription
-Newsletter subscription feature that needs to be to be integrated to a SMTP Server later. It is usually for affiliate marketing. 
+Newsletter subscription feature that needs to be to be integrated to a SMTP Server later. It is usually used for affiliate marketing. 
 
 ![Subscribe to Newsletter](https://github.com/benji-sings/jp-budget-cal/blob/main/pictures/008_subscribe-newletters-marketing.png)
 
