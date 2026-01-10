@@ -666,6 +666,8 @@ The following enhancements would improve production readiness and business capab
 
 ### 12. Integration of More Data Sources to the Web Application 
 
+### 13. Explore the use of Prometheus and Grafana for Observability
+
 ### Implementation Priority Table
 
 No.  | Improvement | Priority | Effort | Impact |
