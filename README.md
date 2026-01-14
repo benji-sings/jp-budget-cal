@@ -668,6 +668,8 @@ The following enhancements would improve production readiness and business capab
 
 ### 13. Explore the use of Prometheus and Grafana for Observability
 
+### 14. Further Introduce More Security Fixes and Improvements 
+
 ### Implementation Priority Table
 
 No.  | Improvement | Priority | Effort | Impact |
@@ -685,6 +687,7 @@ No.  | Improvement | Priority | Effort | Impact |
 | 11. | Explore the use of Apache Airflow v3 for Data Engineering | Low | Low
 | 12. | Integration of More Data Sources to the Web Application | High | Medium | Valuable for growth
 | 13. | Explore the use of Prometheus and Grafana for Observability | Low | Low 
+| 14. | Further Introduce More Security Fixes and Improvements | Medium | Medium |
 
 ## Disclaimer
 The author initially created this project for the exploration of open-source tools and to learn more about the concepts of Software Development. The author has a physics and mathematics background based on his educational training. He is not a computer scientist. But is an advocate for the [Linux Foundation (LF)](https://www.linuxfoundation.org/) and the [Cloud Native Computing Foundation (CNCF)](https://www.cncf.io/). 
